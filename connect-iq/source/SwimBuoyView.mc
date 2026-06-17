@@ -5,6 +5,7 @@ import Toybox.Attention;
 import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.Position;
+import Toybox.System;
 import Toybox.Time;
 import Toybox.Timer;
 import Toybox.WatchUi;
@@ -88,23 +89,53 @@ class SwimBuoyView extends WatchUi.View {
         }
     }
 
-    function uploadTrackIfNeeded() as Void {
+    function buildPayload() as Dictionary? {
         if (trackBuffer.size() == 0) {
-            return;
-        }
-        var auto = Application.Properties.getValue("autoUpload");
-        if (auto != null && auto == false) {
-            return;
+            return null;
         }
         var first = trackBuffer[0] as Dictionary;
-        var payload = {
+        return {
             "route_id" => routeEngine.routeId,
             "name" => "SwimBuoy",
             "recorded_at" => first.get("t"),
             "points" => trackBuffer
         };
+    }
+
+    function isPhoneConnected() as Boolean {
+        return System.getDeviceSettings().phoneConnected;
+    }
+
+    // Авто-отправка трека по завершении заплыва (если включена в настройках).
+    function uploadTrackIfNeeded() as Void {
+        var auto = Application.Properties.getValue("autoUpload");
+        if (auto != null && auto == false) {
+            return;
+        }
+        var payload = buildPayload();
+        if (payload == null) {
+            return;
+        }
         uploadStatus = WatchUi.loadResource(Rez.Strings.Uploading) as String;
         backendClient.queueAndUpload(payload);
+    }
+
+    // Ручная отправка трека (пункт меню «Отправить трек»).
+    function manualUpload() as Void {
+        if (!isPhoneConnected()) {
+            uploadStatus = WatchUi.loadResource(Rez.Strings.NoConnection) as String;
+            WatchUi.requestUpdate();
+            return;
+        }
+        var payload = buildPayload();
+        if (payload == null) {
+            uploadStatus = WatchUi.loadResource(Rez.Strings.NoTrack) as String;
+            WatchUi.requestUpdate();
+            return;
+        }
+        uploadStatus = WatchUi.loadResource(Rez.Strings.Uploading) as String;
+        backendClient.queueAndUpload(payload);
+        WatchUi.requestUpdate();
     }
 
     function onUploadResult(ok as Boolean) as Void {
@@ -363,6 +394,10 @@ class SwimBuoyView extends WatchUi.View {
         var pointName = routeEngine.getActivePointName();
         if (pointName != null) {
             drawCenteredText(dc, 36, pointName, Graphics.FONT_TINY);
+        }
+
+        if (uploadStatus != null) {
+            drawCenteredText(dc, 56, uploadStatus, Graphics.FONT_XTINY);
         }
 
         var relativeBearing = GeoUtils.relativeBearingDegrees(bearing, lastHeading);
