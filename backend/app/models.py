@@ -136,3 +136,27 @@ class Activity(Base):
             "buoys_taken": s.get("buoys_taken"),
             "buoys_total": s.get("buoys_total"),
         }
+
+
+class RegistrationRequest(Base):
+    """Заявка на регистрацию спортсмена (обрабатывает админ вручную)."""
+    __tablename__ = "registration_requests"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: _uid("reg"))
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    contact: Mapped[str] = mapped_column(String, default="")  # email / telegram / телефон
+    note: Mapped[str] = mapped_column(String, default="")
+    status: Mapped[str] = mapped_column(String, default="pending")  # pending|approved|rejected
+    athlete_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "contact": self.contact,
+            "note": self.note,
+            "status": self.status,
+            "athlete_id": self.athlete_id,
+            "created_at": self.created_at.isoformat(),
+        }

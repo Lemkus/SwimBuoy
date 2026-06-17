@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     # CORS: список origin'ов через запятую, или "*".
     cors_origins: str = "*"
 
+    # Авто-импорт демо-тренировки из backend/Архив.zip при первом запуске.
+    demo_bootstrap: bool = True
+
     @property
     def db_path(self) -> Path:
         return self.data_dir / "swimbuoy.sqlite3"

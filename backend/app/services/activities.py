@@ -22,6 +22,7 @@ def create_activity(
     recorded_at: Optional[datetime] = None,
     original_filename: Optional[str] = None,
     stored_file: Optional[str] = None,
+    is_public: bool = False,
 ) -> Activity:
     report = None
     if route is not None:
@@ -40,6 +41,7 @@ def create_activity(
         report=report,
         original_filename=original_filename,
         stored_file=stored_file,
+        is_public=is_public,
     )
     db.add(activity)
     db.commit()

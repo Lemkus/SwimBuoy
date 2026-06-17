@@ -6,8 +6,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..models import Activity, Athlete, Route
+from ..models import Activity, Athlete, RegistrationRequest, Route
 from ..security import require_admin
+from ..services.athletes import create_athlete
 
 router = APIRouter(prefix="/api/admin", tags=["admin"],
                    dependencies=[Depends(require_admin)])
@@ -63,3 +64,45 @@ def delete_activity(activity_id: str, db: Session = Depends(get_db)) -> dict:
     db.delete(activity)
     db.commit()
     return {"deleted": activity_id}
+
+
+# --- Заявки на регистрацию ---
+
+@router.get("/registrations")
+def list_registrations(db: Session = Depends(get_db)) -> list[dict]:
+    rows = db.scalars(
+        select(RegistrationRequest).order_by(RegistrationRequest.created_at.desc())
+    ).all()
+    return [r.to_dict() for r in rows]
+
+
+@router.post("/registrations/{req_id}/approve")
+def approve_registration(req_id: str, db: Session = Depends(get_db)) -> dict:
+    req = db.get(RegistrationRequest, req_id)
+    if not req:
+        raise HTTPException(status_code=404, detail="Заявка не найдена")
+    athlete = create_athlete(db, req.name)
+    req.status = "approved"
+    req.athlete_id = athlete.id
+    db.commit()
+    return {"athlete_id": athlete.id, "name": athlete.name, "token": athlete.token}
+
+
+@router.post("/registrations/{req_id}/reject")
+def reject_registration(req_id: str, db: Session = Depends(get_db)) -> dict:
+    req = db.get(RegistrationRequest, req_id)
+    if not req:
+        raise HTTPException(status_code=404, detail="Заявка не найдена")
+    req.status = "rejected"
+    db.commit()
+    return {"ok": True}
+
+
+@router.delete("/registrations/{req_id}")
+def delete_registration(req_id: str, db: Session = Depends(get_db)) -> dict:
+    req = db.get(RegistrationRequest, req_id)
+    if not req:
+        raise HTTPException(status_code=404, detail="Заявка не найдена")
+    db.delete(req)
+    db.commit()
+    return {"deleted": req_id}

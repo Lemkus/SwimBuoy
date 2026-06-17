@@ -52,3 +52,9 @@ class WatchActivityIn(BaseModel):
 
 class ShareToggle(BaseModel):
     is_public: bool
+
+
+class RegistrationIn(BaseModel):
+    name: str
+    contact: str = ""
+    note: str = ""

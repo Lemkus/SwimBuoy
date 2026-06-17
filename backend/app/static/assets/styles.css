@@ -109,6 +109,23 @@ th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: upp
   padding: 12px 20px; border-radius: 10px; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,.4);
 }
 .center-panel { max-width: 440px; margin: 60px auto; }
+
+.hero {
+  padding: 40px 0 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+.hero-title {
+  font-size: 38px;
+  line-height: 1.15;
+  margin: 0 0 14px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.hero-sub { color: var(--muted); font-size: 16px; max-width: 640px; margin: 0 0 22px; }
+@media (max-width: 600px) { .hero-title { font-size: 28px; } }
 .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin: 10px 2px; }
 .legend span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
 .legend .l-track::before { background: #38bdf8; }

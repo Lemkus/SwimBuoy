@@ -30,6 +30,16 @@ app.add_middleware(
 @app.on_event("startup")
 def _startup() -> None:
     init_db()
+    if settings.demo_bootstrap:
+        from .db import SessionLocal
+        from .services.demo import bootstrap_demo
+        db = SessionLocal()
+        try:
+            bootstrap_demo(db)
+        except Exception:
+            db.rollback()
+        finally:
+            db.close()
 
 
 @app.get("/api/health")

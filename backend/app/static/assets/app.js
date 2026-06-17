@@ -84,7 +84,8 @@ function navView() {
       <a href="#/upload">Загрузить</a><a href="#/admin">Админ</a><a href="#" id="logout">Выйти</a>`;
     nav.querySelector("#logout").onclick = (e) => { e.preventDefault(); clearToken(); location.hash = "#/"; };
   } else {
-    nav.innerHTML = `<a href="#/admin">Админ</a>`;
+    nav.innerHTML = `<a href="#/">Главная</a><a href="#/register">Регистрация</a>
+      <a href="#/login">Войти</a><a href="#/admin">Админ</a>`;
   }
 }
 
@@ -96,13 +97,16 @@ async function route() {
   const hash = location.hash || "#/";
   const parts = hash.slice(2).split("/"); // убираем "#/"
 
-  // Публичный share — без токена.
+  // Публичные экраны — без токена спортсмена.
   if (parts[0] === "share" && parts[1]) return viewShare(parts[1]);
+  if (parts[0] === "register") return viewRegister();
+  if (parts[0] === "r" && parts[1]) return viewPublicRoute(parts[1]);
+  if (parts[0] === "login") return viewLogin();
 
-  // Админка — отдельная авторизация (Basic), без токена спортсмена.
+  // Админка — отдельная авторизация (Basic).
   if (parts[0] === "admin") return viewAdmin(parts[1]);
 
-  if (!getToken()) return viewLogin();
+  if (!getToken()) return viewLanding();
 
   try {
     if (parts[0] === "" ) return viewDashboard();
@@ -143,6 +147,145 @@ function viewLogin() {
   };
   app.querySelector("#go").onclick = submit;
   app.querySelector("#token").onkeydown = (e) => { if (e.key === "Enter") submit(); };
+}
+
+// ---------- Публичный лендинг ----------
+function activityCardPublic(a) {
+  return `<a class="card clickable" style="display:block" href="#/share/${a.share_token}">
+      <div style="display:flex;justify-content:space-between;gap:8px">
+        <strong>${esc(a.athlete || a.name)}</strong>
+        <span class="muted" style="font-size:12px">${fmtDate(a.recorded_at || a.created_at)}</span>
+      </div>
+      <div class="muted" style="font-size:13px;margin-top:4px">${esc(a.route_name || a.name)}</div>
+      <div style="margin-top:12px;display:flex;gap:18px">
+        <div><div style="font-weight:700">${fmtDist(a.distance_m)}</div><div class="muted" style="font-size:12px">дистанция</div></div>
+        <div><div style="font-weight:700">${fmtDur(a.duration_s)}</div><div class="muted" style="font-size:12px">время</div></div>
+        <div><div style="font-weight:700">${a.buoys_taken ?? "—"}/${a.buoys_total ?? "—"}</div><div class="muted" style="font-size:12px">буи</div></div>
+      </div></a>`;
+}
+
+async function viewLanding() {
+  app.innerHTML = `
+    <section class="hero">
+      <h1 class="hero-title">Плавай по виртуальным буям.<br/>Разбирай каждый заплыв.</h1>
+      <p class="hero-sub">SwimBuoy — маршруты буёв для часов Garmin, треки заплывов
+        и отчёты по коридору на открытой воде. Маршруты и тренировки открыты —
+        смотрите без регистрации.</p>
+      <div class="btn-row">
+        <a class="btn" href="#/register">Запросить аккаунт</a>
+        <a class="btn secondary" href="#/login">У меня есть токен</a>
+      </div>
+    </section>
+    <h2>Последние заплывы</h2>
+    <div id="acts" class="grid"><div class="empty">Загрузка…</div></div>
+    <h2>Маршруты</h2>
+    <div id="routes" class="grid"><div class="empty">Загрузка…</div></div>`;
+
+  try {
+    const acts = await fetch("/api/public/activities").then((r) => r.json());
+    const ae = app.querySelector("#acts");
+    ae.innerHTML = acts.length
+      ? acts.map(activityCardPublic).join("")
+      : `<div class="empty">Пока нет публичных заплывов.</div>`;
+  } catch (e) {}
+
+  try {
+    const routes = await fetch("/api/public/routes").then((r) => r.json());
+    const re = app.querySelector("#routes");
+    re.innerHTML = routes.length ? routes.map((r) => `
+      <a class="card clickable" style="display:block" href="#/r/${r.id}">
+        <strong>${esc(r.name)}</strong>
+        <div class="muted" style="font-size:13px;margin-top:8px">${r.points_count} буёв · радиус ${r.arrivalRadiusM} м</div>
+        <div class="muted" style="font-size:12px;margin-top:6px">${esc(r.athlete || "")}</div>
+      </a>`).join("") : `<div class="empty">Маршрутов пока нет.</div>`;
+  } catch (e) {}
+}
+
+// ---------- Регистрация (заявка) ----------
+function viewRegister() {
+  app.innerHTML = `
+    <div class="center-panel card">
+      <h1>Запрос аккаунта</h1>
+      <p class="subtitle">Оставьте заявку — администратор создаст аккаунт и выдаст
+        8-символьный токен для входа и часов.</p>
+      <label>Имя (как показывать в заплывах)</label>
+      <input id="name" placeholder="Например, Сафар" autofocus />
+      <label>Контакт (email / telegram)</label>
+      <input id="contact" placeholder="по нему пришлём токен" />
+      <label>Комментарий (необязательно)</label>
+      <textarea id="note" rows="3" placeholder="клуб, устройство, и т.п."></textarea>
+      <div class="btn-row"><button class="btn" id="go">Отправить заявку</button>
+        <a class="btn ghost" href="#/">На главную</a></div>
+    </div>`;
+  app.querySelector("#go").onclick = async () => {
+    const name = app.querySelector("#name").value.trim();
+    if (!name) return toast("Укажите имя");
+    const body = {
+      name,
+      contact: app.querySelector("#contact").value.trim(),
+      note: app.querySelector("#note").value.trim(),
+    };
+    try {
+      await api("/api/public/register", { method: "POST", json: body });
+      app.innerHTML = `<div class="center-panel card"><h1>Заявка отправлена ✅</h1>
+        <p class="subtitle">Спасибо! Администратор свяжется с вами и выдаст токен.</p>
+        <div class="btn-row"><a class="btn" href="#/">На главную</a></div></div>`;
+    } catch (e) { toast(e.message); }
+  };
+}
+
+// ---------- Карта маршрута (общая) ----------
+function renderRouteMap(elId, route) {
+  const order = (route.session && route.session.order) || Object.keys(route.points);
+  const map = L.map(elId);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
+  const pts = [], line = [];
+  if (route.start) {
+    L.marker([route.start.lat, route.start.lon]).addTo(map).bindPopup("Старт");
+    pts.push([route.start.lat, route.start.lon]); line.push([route.start.lat, route.start.lon]);
+  }
+  order.forEach((pid, i) => {
+    const p = route.points[pid]; if (!p) return;
+    L.circleMarker([p.lat, p.lon], { radius: 8, color: "#fbbf24", fillColor: "#fbbf24", fillOpacity: .9 })
+      .addTo(map).bindPopup(`${i + 1}. ${esc(p.name || pid)}`);
+    pts.push([p.lat, p.lon]); line.push([p.lat, p.lon]);
+  });
+  L.polyline(line, { color: "#2dd4bf", weight: 2, dashArray: "6 6" }).addTo(map);
+  if (pts.length) map.fitBounds(pts, { padding: [40, 40] });
+  return order;
+}
+
+function routePointsTable(route, order) {
+  return `<table><thead><tr><th>#</th><th>ID</th><th>Имя</th><th>Координаты</th></tr></thead>
+    <tbody>${order.map((pid, i) => {
+      const p = route.points[pid]; if (!p) return "";
+      return `<tr><td>${i + 1}</td><td>${esc(pid)}</td><td>${esc(p.name || "")}</td>
+        <td class="muted">${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}</td></tr>`;
+    }).join("")}</tbody></table>`;
+}
+
+// ---------- Публичный просмотр маршрута ----------
+async function viewPublicRoute(id) {
+  try {
+    const r = await fetch(`/api/public/routes/${id}`).then((res) => {
+      if (!res.ok) throw new Error("Маршрут недоступен");
+      return res.json();
+    });
+    const order = (r.session && r.session.order) || Object.keys(r.points);
+    app.innerHTML = `
+      <h1>${esc(r.name)}</h1>
+      <p class="subtitle">${order.length} точек · радиус ${r.arrivalRadiusM} м${r.athlete ? " · " + esc(r.athlete) : ""}</p>
+      <div class="btn-row"><a class="btn" href="/api/public/routes/${id}" download>JSON</a>
+        <a class="btn ghost" href="#/">На главную</a></div>
+      <div id="map" class="map"></div>
+      <h2>Точки</h2><div id="tbl"></div>`;
+    renderRouteMap("map", r);
+    app.querySelector("#tbl").innerHTML = routePointsTable(r, order);
+  } catch (e) {
+    app.innerHTML = `<div class="card center-panel"><h2>Маршрут недоступен</h2>
+      <p class="muted">${esc(e.message)}</p></div>`;
+  }
 }
 
 // ---------- Дашборд (тренировки) ----------
@@ -207,30 +350,10 @@ async function viewRoute(id) {
     </div>
     <div id="map" class="map"></div>
     <div class="legend"><span class="l-buoy">буй</span></div>
-    <h2>Точки</h2>
-    <table><thead><tr><th>#</th><th>ID</th><th>Имя</th><th>Координаты</th></tr></thead>
-      <tbody>${order.map((pid, i) => {
-        const p = r.points[pid]; if (!p) return "";
-        return `<tr><td>${i + 1}</td><td>${esc(pid)}</td><td>${esc(p.name || "")}</td>
-          <td class="muted">${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}</td></tr>`;
-      }).join("")}</tbody></table>`;
+    <h2>Точки</h2><div id="tbl"></div>`;
 
-  // Карта маршрута.
-  const map = L.map("map");
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
-  const pts = [];
-  if (r.start) { L.marker([r.start.lat, r.start.lon]).addTo(map).bindPopup("Старт"); pts.push([r.start.lat, r.start.lon]); }
-  const line = [];
-  if (r.start) line.push([r.start.lat, r.start.lon]);
-  order.forEach((pid, i) => {
-    const p = r.points[pid]; if (!p) return;
-    L.circleMarker([p.lat, p.lon], { radius: 8, color: "#fbbf24", fillColor: "#fbbf24", fillOpacity: .9 })
-      .addTo(map).bindPopup(`${i + 1}. ${esc(p.name || pid)}`);
-    pts.push([p.lat, p.lon]); line.push([p.lat, p.lon]);
-  });
-  L.polyline(line, { color: "#2dd4bf", weight: 2, dashArray: "6 6" }).addTo(map);
-  if (pts.length) map.fitBounds(pts, { padding: [40, 40] });
+  renderRouteMap("map", r);
+  app.querySelector("#tbl").innerHTML = routePointsTable(r, order);
 
   const del = app.querySelector("#del");
   if (del) del.onclick = async () => {
@@ -510,12 +633,13 @@ async function viewAdmin(tab) {
   try { await adminApi("/api/admin/login"); }
   catch (e) { return adminLoginView(); }
 
-  tab = tab || "athletes";
+  tab = tab || "registrations";
   const tabLink = (id, label) =>
     `<a class="btn ${tab === id ? "" : "ghost"} small" href="#/admin/${id}">${label}</a>`;
   app.innerHTML = `
     <h1>Админ-панель</h1>
     <div class="btn-row">
+      ${tabLink("registrations", "Заявки")}
       ${tabLink("athletes", "Спортсмены")}
       ${tabLink("routes", "Маршруты")}
       ${tabLink("activities", "Тренировки")}
@@ -524,9 +648,49 @@ async function viewAdmin(tab) {
     <div id="atab" class="empty">Загрузка…</div>`;
   app.querySelector("#alogout").onclick = (e) => { e.preventDefault(); clearAdmin(); location.hash = "#/admin"; route(); };
 
+  if (tab === "registrations") return adminRegistrations();
   if (tab === "athletes") return adminAthletes();
   if (tab === "routes") return adminRoutes();
   if (tab === "activities") return adminActivities();
+}
+
+async function adminRegistrations() {
+  const box = app.querySelector("#atab");
+  box.className = "";
+  const list = await adminApi("/api/admin/registrations");
+  if (!list.length) { box.innerHTML = `<div class="empty">Заявок нет.</div>`; return; }
+  box.innerHTML = `<table><thead><tr><th>Имя</th><th>Контакт</th><th>Комментарий</th><th>Статус</th><th></th></tr></thead>
+    <tbody>${list.map((r) => `<tr>
+      <td>${esc(r.name)}</td><td class="muted">${esc(r.contact)}</td>
+      <td class="muted">${esc(r.note)}</td>
+      <td>${r.status === "pending" ? '<span class="pill info">новая</span>'
+        : r.status === "approved" ? '<span class="pill good">принята</span>'
+        : '<span class="pill bad">отклонена</span>'}</td>
+      <td>${r.status === "pending"
+        ? `<button class="btn small" data-ok="${r.id}">Одобрить</button>
+           <button class="btn danger small" data-no="${r.id}">Отклонить</button>`
+        : `<button class="btn ghost small" data-del="${r.id}">Удалить</button>`}</td>
+    </tr>`).join("")}</tbody></table>`;
+  box.querySelectorAll("button[data-ok]").forEach((b) => {
+    b.onclick = async () => {
+      const res = await adminApi(`/api/admin/registrations/${b.dataset.ok}/approve`, { method: "POST" });
+      try { await navigator.clipboard.writeText(res.token); } catch (e) {}
+      toast(`Аккаунт создан. Токен: ${res.token} (скопирован)`);
+      adminRegistrations();
+    };
+  });
+  box.querySelectorAll("button[data-no]").forEach((b) => {
+    b.onclick = async () => {
+      await adminApi(`/api/admin/registrations/${b.dataset.no}/reject`, { method: "POST" });
+      adminRegistrations();
+    };
+  });
+  box.querySelectorAll("button[data-del]").forEach((b) => {
+    b.onclick = async () => {
+      await adminApi(`/api/admin/registrations/${b.dataset.del}`, { method: "DELETE" });
+      adminRegistrations();
+    };
+  });
 }
 
 async function adminAthletes() {
