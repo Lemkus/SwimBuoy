@@ -101,7 +101,8 @@ input[type="checkbox"] { accent-color: var(--accent); }
 .stat .v { font-size: 22px; font-weight: 700; }
 .stat .k { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 480px; }
 th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); }
 th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
 
@@ -110,6 +111,7 @@ th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: upp
   position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
   background: var(--panel-solid); border: 1px solid var(--accent);
   padding: 12px 20px; border-radius: 10px; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,.4);
+  max-width: calc(100vw - 32px); text-align: center;
 }
 .center-panel { max-width: 440px; margin: 60px auto; }
 
@@ -132,6 +134,29 @@ th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: upp
 .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin: 10px 2px; }
 .legend span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
 .legend .l-track::before { background: #38bdf8; }
-.legend .l-corridor::before { background: rgba(45,212,191,.4); }
+.legend .l-corridor::before { background: rgba(45,212,191,.6); }
 .legend .l-buoy::before { background: #fbbf24; border-radius: 50%; }
 .legend .l-miss::before { background: #f87171; border-radius: 50%; }
+
+/* ---- Адаптив ---- */
+@media (max-width: 600px) {
+  main { padding: 16px 10px 60px; }
+  h1 { font-size: 20px; }
+  #map, .map { height: 300px; }
+  .stats { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); }
+  .stat .v { font-size: 18px; }
+  .btn-row { gap: 8px; }
+  .card { padding: 14px; }
+  .center-panel { margin: 24px auto; }
+  /* route-edit: форма буёв — координаты стекают */
+  .row { gap: 10px; }
+}
+
+@media (max-width: 480px) {
+  .topbar { padding: 10px 14px; }
+  .brand { font-size: 17px; }
+  nav { gap: 10px; }
+  nav a { font-size: 13px; }
+  /* hide secondary nav links that overflow */
+  nav a:not(:first-child):not(:last-child):nth-child(n+4) { display: none; }
+}

@@ -350,6 +350,9 @@ async function viewGroup(token) {
   app.innerHTML = `
     <h1>Совместная тренировка</h1>
     <p class="subtitle">${route ? esc(route.name) + " · " : ""}${fmtDate(d.recorded_at)} · ${d.swimmers.length} пловцов</p>
+    <div class="btn-row" style="margin-bottom:4px">
+      <button class="btn secondary small" id="copyGroup">🔗 Скопировать ссылку</button>
+    </div>
     <div class="card" style="margin-bottom:14px">
       <div class="row" style="align-items:center">
         <div style="flex:1 1 260px">
@@ -364,8 +367,8 @@ async function viewGroup(token) {
     </div>
     <div id="gmap" class="map"></div>
     <h2>Пловцы</h2>
-    <table><thead><tr><th>Пловец</th><th>Дист.</th><th>Время</th><th>Буи</th><th>XTE p95</th><th></th></tr></thead>
-      <tbody id="gtbl"></tbody></table>`;
+    <div class="table-wrap"><table><thead><tr><th>Пловец</th><th>Дист.</th><th>Время</th><th>Буи</th><th>XTE p95</th><th></th></tr></thead>
+      <tbody id="gtbl"></tbody></table></div>`;
 
   const map = L.map("gmap");
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -393,7 +396,7 @@ async function viewGroup(token) {
     if (!route || !app.querySelector("#corrToggle").checked) return;
     route.legs.forEach((l) => {
       L.polygon(_legPolygon(l.a, l.b, half),
-        { color: "#2dd4bf", weight: 0, fillColor: "#2dd4bf", fillOpacity: .1 }).addTo(corridorLayer);
+        { color: "#2dd4bf", weight: 1, opacity: .5, fillColor: "#2dd4bf", fillOpacity: .22 }).addTo(corridorLayer);
     });
   }
 
@@ -431,6 +434,12 @@ async function viewGroup(token) {
     drawCorridor(parseFloat(half.value));
   };
   app.querySelector("#corrToggle").onchange = () => drawCorridor(parseFloat(half.value));
+
+  app.querySelector("#copyGroup").onclick = () => {
+    const url = location.origin + "/g/" + token;
+    try { navigator.clipboard.writeText(url); } catch (e) {}
+    toast("Ссылка скопирована: " + url);
+  };
 
   // Таблица.
   app.querySelector("#gtbl").innerHTML = d.swimmers.map((s, i) => {
@@ -673,7 +682,7 @@ function renderReportMap(elId, geojson) {
   (geojson.features || []).forEach((f) => {
     const k = f.properties.kind, g = f.geometry;
     if (k === "corridor" && g.type === "Polygon") {
-      L.polygon(g.coordinates[0].map(ll), { color: "#2dd4bf", weight: 0, fillColor: "#2dd4bf", fillOpacity: .12 }).addTo(map);
+      L.polygon(g.coordinates[0].map(ll), { color: "#2dd4bf", weight: 1, opacity: .5, fillColor: "#2dd4bf", fillOpacity: .25 }).addTo(map);
     } else if (k === "leg") {
       L.polyline(g.coordinates.map(ll), { color: "#2dd4bf", weight: 1.5, dashArray: "5 6", opacity: .7 }).addTo(map);
     } else if (k === "track") {
@@ -711,7 +720,7 @@ function reportBody(report, container) {
     <div class="legend"><span class="l-track">трек</span><span class="l-corridor">коридор</span>
       <span class="l-buoy">взят</span><span class="l-miss">не взят</span></div>
     <h2>Отклонение по плечам (cross-track)</h2>
-    <table><thead><tr><th>Плечо</th><th>Длина</th><th>Медиана</th><th>p90</th><th>p95</th><th>макс</th><th>коридор ±</th></tr></thead>
+    <div class="table-wrap"><table><thead><tr><th>Плечо</th><th>Длина</th><th>Медиана</th><th>p90</th><th>p95</th><th>макс</th><th>коридор ±</th></tr></thead>
       <tbody>${report.legs.map((l) => `<tr>
         <td>${esc(l.from)}→${esc(l.to)}</td>
         <td>${fmtDist(l.length_m)}</td>
@@ -719,7 +728,7 @@ function reportBody(report, container) {
         <td>${l.xte && l.xte.p90 != null ? l.xte.p90 + " м" : "—"}</td>
         <td>${l.xte && l.xte.p95 != null ? l.xte.p95 + " м" : "—"}</td>
         <td>${l.xte && l.xte.max != null ? l.xte.max + " м" : "—"}</td>
-        <td>${l.corridor_half_m} м</td></tr>`).join("")}</tbody></table>`;
+        <td>${l.corridor_half_m} м</td></tr>`).join("")}</tbody></table></div>`;
   renderReportMap("rmap", report.geojson);
 }
 
@@ -737,9 +746,9 @@ async function viewActivity(id) {
 
   app.querySelector("#share").onclick = async () => {
     const res = await api(`/api/activities/${id}/share`, { method: "POST", json: { is_public: true } });
-    const url = location.origin + "/#/share/" + res.share_token;
+    const url = location.origin + "/s/" + res.share_token;
     try { await navigator.clipboard.writeText(url); } catch (e) {}
-    toast("Публичная ссылка скопирована: " + url);
+    toast("Ссылка скопирована: " + url);
   };
   app.querySelector("#del").onclick = async () => {
     if (!confirm("Удалить тренировку?")) return;
