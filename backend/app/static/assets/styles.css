@@ -85,6 +85,9 @@ input, select, textarea {
 input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
 label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 5px; }
 
+input[type="range"] { accent-color: var(--accent); padding: 0; }
+input[type="checkbox"] { accent-color: var(--accent); }
+
 .muted { color: var(--muted); }
 .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
 .pill.good { background: rgba(52,211,153,.15); color: var(--good); }

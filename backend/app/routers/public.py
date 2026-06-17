@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from ..db import get_db
 from ..models import Activity, RegistrationRequest, Route
 from ..schemas import RegistrationIn
+from ..services.groups import build_group_payload, group_public_activities
 
 router = APIRouter(prefix="/api/public", tags=["public"])
 
@@ -51,6 +52,43 @@ def public_route(route_id: str, db: Session = Depends(get_db)) -> dict:
     data = route.to_buoy_route()
     data["athlete"] = route.athlete.name if route.athlete else None
     return data
+
+
+@router.get("/groups")
+def public_groups(db: Session = Depends(get_db)) -> list[dict]:
+    """Совместные тренировки (2+ пловца, совпадение времени и области ≤2 км)."""
+    groups = group_public_activities(db)
+    out = []
+    for g in groups:
+        if len(g) < 2:
+            continue
+        route = None
+        for a in g:
+            if a.route_id:
+                route = db.get(Route, a.route_id)
+                if route:
+                    break
+        start = g[0].recorded_at
+        out.append({
+            "group_id": g[0].share_token,
+            "route_name": route.name if route else None,
+            "recorded_at": start.isoformat() if start else None,
+            "size": len(g),
+            "swimmers": [a.athlete.name if a.athlete else a.name for a in g],
+        })
+    return out
+
+
+@router.get("/groups/{token}")
+def public_group(token: str, db: Session = Depends(get_db)) -> dict:
+    """Данные совместной тренировки по share-токену любого участника."""
+    activity = db.scalar(select(Activity).where(Activity.share_token == token))
+    if not activity or not activity.is_public:
+        raise HTTPException(status_code=404, detail="Тренировка не найдена")
+    for g in group_public_activities(db):
+        if any(a.id == activity.id for a in g):
+            return build_group_payload(db, g)
+    return build_group_payload(db, [activity])
 
 
 @router.get("/activities/{share_token}")

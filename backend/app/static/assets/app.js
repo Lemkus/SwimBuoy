@@ -99,6 +99,7 @@ async function route() {
 
   // Публичные экраны — без токена спортсмена.
   if (parts[0] === "share" && parts[1]) return viewShare(parts[1]);
+  if (parts[0] === "group" && parts[1]) return viewGroup(parts[1]);
   if (parts[0] === "register") return viewRegister();
   if (parts[0] === "r" && parts[1]) return viewPublicRoute(parts[1]);
   if (parts[0] === "login") return viewLogin();
@@ -176,10 +177,28 @@ async function viewLanding() {
         <a class="btn secondary" href="#/login">У меня есть токен</a>
       </div>
     </section>
+    <div id="groups-wrap"></div>
     <h2>Последние заплывы</h2>
     <div id="acts" class="grid"><div class="empty">Загрузка…</div></div>
     <h2>Маршруты</h2>
     <div id="routes" class="grid"><div class="empty">Загрузка…</div></div>`;
+
+  try {
+    const groups = await fetch("/api/public/groups").then((r) => r.json());
+    if (groups.length) {
+      app.querySelector("#groups-wrap").innerHTML =
+        `<h2>Совместные тренировки</h2><div id="groups" class="grid"></div>`;
+      app.querySelector("#groups").innerHTML = groups.map((g) => `
+        <a class="card clickable" style="display:block" href="#/group/${g.group_id}">
+          <div style="display:flex;justify-content:space-between;gap:8px">
+            <strong>${g.size} пловцов вместе</strong>
+            <span class="muted" style="font-size:12px">${fmtDate(g.recorded_at)}</span>
+          </div>
+          <div class="muted" style="font-size:13px;margin-top:6px">${esc(g.route_name || "")}</div>
+          <div style="font-size:13px;margin-top:8px">${g.swimmers.map(esc).join(" · ")}</div>
+        </a>`).join("");
+    }
+  } catch (e) {}
 
   try {
     const acts = await fetch("/api/public/activities").then((r) => r.json());
@@ -286,6 +305,145 @@ async function viewPublicRoute(id) {
     app.innerHTML = `<div class="card center-panel"><h2>Маршрут недоступен</h2>
       <p class="muted">${esc(e.message)}</p></div>`;
   }
+}
+
+// ---------- Совместная тренировка ----------
+const SWIMMER_COLORS = ["#38bdf8", "#f472b6", "#a3e635", "#fbbf24", "#c084fc", "#fb7185", "#22d3ee", "#facc15"];
+
+function _destPoint(lat, lon, brgDeg, distM) {
+  const R = 6371000, br = brgDeg * Math.PI / 180, p1 = lat * Math.PI / 180, l1 = lon * Math.PI / 180;
+  const p2 = Math.asin(Math.sin(p1) * Math.cos(distM / R) + Math.cos(p1) * Math.sin(distM / R) * Math.cos(br));
+  const l2 = l1 + Math.atan2(Math.sin(br) * Math.sin(distM / R) * Math.cos(p1),
+    Math.cos(distM / R) - Math.sin(p1) * Math.sin(p2));
+  return [p2 * 180 / Math.PI, l2 * 180 / Math.PI];
+}
+function _bearingDeg(a, b) {
+  const p1 = a[0] * Math.PI / 180, p2 = b[0] * Math.PI / 180, dl = (b[1] - a[1]) * Math.PI / 180;
+  const y = Math.sin(dl) * Math.cos(p2);
+  const x = Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl);
+  return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+}
+function _legPolygon(a, b, half) {
+  const brg = _bearingDeg(a, b);
+  const left = (brg + 270) % 360, right = (brg + 90) % 360;
+  return [
+    _destPoint(a[0], a[1], left, half), _destPoint(b[0], b[1], left, half),
+    _destPoint(b[0], b[1], right, half), _destPoint(a[0], a[1], right, half),
+  ];
+}
+
+async function viewGroup(token) {
+  let d;
+  try {
+    d = await fetch(`/api/public/groups/${token}`).then((r) => {
+      if (!r.ok) throw new Error("Тренировка не найдена");
+      return r.json();
+    });
+  } catch (e) {
+    app.innerHTML = `<div class="card center-panel"><h2>Недоступно</h2>
+      <p class="muted">${esc(e.message)}</p></div>`;
+    return;
+  }
+  const route = d.route;
+  const initialHalf = route ? (route.arrivalRadiusM || 20) : 20;
+
+  app.innerHTML = `
+    <h1>Совместная тренировка</h1>
+    <p class="subtitle">${route ? esc(route.name) + " · " : ""}${fmtDate(d.recorded_at)} · ${d.swimmers.length} пловцов</p>
+    <div class="card" style="margin-bottom:14px">
+      <div class="row" style="align-items:center">
+        <div style="flex:1 1 260px">
+          <label style="margin-top:0">Ширина коридора: <b id="halfval">±${initialHalf} м</b></label>
+          <input id="half" type="range" min="5" max="120" step="1" value="${initialHalf}" />
+        </div>
+        <div style="flex:0 0 auto"><label style="margin-top:0">
+          <input type="checkbox" id="corrToggle" checked style="width:auto" /> показывать коридор</label>
+        </div>
+      </div>
+      <div id="toggles" style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px"></div>
+    </div>
+    <div id="gmap" class="map"></div>
+    <h2>Пловцы</h2>
+    <table><thead><tr><th>Пловец</th><th>Дист.</th><th>Время</th><th>Буи</th><th>XTE p95</th><th></th></tr></thead>
+      <tbody id="gtbl"></tbody></table>`;
+
+  const map = L.map("gmap");
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
+  const bounds = [];
+
+  // Плечи + буи маршрута.
+  const corridorLayer = L.layerGroup().addTo(map);
+  if (route) {
+    route.legs.forEach((l) => {
+      L.polyline([l.a, l.b], { color: "#2dd4bf", weight: 1.5, dashArray: "5 6", opacity: .7 }).addTo(map);
+    });
+    if (route.start) L.marker([route.start.lat, route.start.lon]).addTo(map).bindPopup("Старт");
+    const order = route.order || Object.keys(route.points);
+    order.forEach((pid, i) => {
+      const p = route.points[pid]; if (!p) return;
+      L.circleMarker([p.lat, p.lon], { radius: 8, color: "#fbbf24", fillColor: "#fbbf24", fillOpacity: .9 })
+        .addTo(map).bindPopup(`${i + 1}. ${esc(p.name || pid)}`);
+      bounds.push([p.lat, p.lon]);
+    });
+  }
+
+  function drawCorridor(half) {
+    corridorLayer.clearLayers();
+    if (!route || !app.querySelector("#corrToggle").checked) return;
+    route.legs.forEach((l) => {
+      L.polygon(_legPolygon(l.a, l.b, half),
+        { color: "#2dd4bf", weight: 0, fillColor: "#2dd4bf", fillOpacity: .1 }).addTo(corridorLayer);
+    });
+  }
+
+  // Треки пловцов.
+  const trackLayers = {};
+  d.swimmers.forEach((s, i) => {
+    const color = SWIMMER_COLORS[i % SWIMMER_COLORS.length];
+    const line = L.polyline(s.track, { color, weight: 3, opacity: .9 }).addTo(map);
+    trackLayers[s.id] = line;
+    s.track.forEach((p) => bounds.push(p));
+  });
+
+  if (bounds.length) map.fitBounds(bounds, { padding: [40, 40] });
+  drawCorridor(initialHalf);
+
+  // Переключатели пловцов.
+  app.querySelector("#toggles").innerHTML = d.swimmers.map((s, i) => {
+    const color = SWIMMER_COLORS[i % SWIMMER_COLORS.length];
+    return `<label style="margin:0;color:var(--text)">
+      <input type="checkbox" data-sw="${s.id}" checked style="width:auto" />
+      <span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:${color};vertical-align:-1px;margin:0 4px"></span>
+      ${esc(s.name)}</label>`;
+  }).join("");
+  app.querySelectorAll("input[data-sw]").forEach((cb) => {
+    cb.onchange = () => {
+      const layer = trackLayers[cb.dataset.sw];
+      if (cb.checked) layer.addTo(map); else map.removeLayer(layer);
+    };
+  });
+
+  // Слайдер коридора.
+  const half = app.querySelector("#half");
+  half.oninput = () => {
+    app.querySelector("#halfval").textContent = `±${half.value} м`;
+    drawCorridor(parseFloat(half.value));
+  };
+  app.querySelector("#corrToggle").onchange = () => drawCorridor(parseFloat(half.value));
+
+  // Таблица.
+  app.querySelector("#gtbl").innerHTML = d.swimmers.map((s, i) => {
+    const color = SWIMMER_COLORS[i % SWIMMER_COLORS.length];
+    const sm = s.summary || {};
+    return `<tr>
+      <td><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:${color};margin-right:6px"></span>${esc(s.name)}</td>
+      <td>${fmtDist(sm.distance_m)}</td><td>${fmtDur(sm.duration_s)}</td>
+      <td>${sm.buoys_taken ?? "—"}/${sm.buoys_total ?? "—"}</td>
+      <td>${sm.xte_overall ? sm.xte_overall.p95 + " м" : "—"}</td>
+      <td><a class="btn ghost small" href="#/share/${s.share_token}">отчёт</a></td>
+    </tr>`;
+  }).join("");
 }
 
 // ---------- Дашборд (тренировки) ----------
