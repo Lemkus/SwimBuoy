@@ -1,0 +1,29 @@
+---
+description: SwimBuoy project context — read docs/status.md and docs/dev-setup.md for handoff
+alwaysApply: true
+---
+
+# SwimBuoy context
+
+Отдельный проект от «Проект Рогейн». MVP: FR955 watch-app, метры + стрелка на активный буй, `point_proximity`, `radius + dwell`.
+
+## Документация (handoff)
+
+- `memory-bank/` — активные задачи; slash: `/mb-init`, `/mb-task`, `/mb-progress`, `/mb-reflect`, `/mb-archive`
+- `docs/status.md` — что сделано, next steps
+- `docs/decisions.md` — продуктовые решения
+- `docs/dev-setup.md` — Windows SDK, Cursor, симулятор, FIT
+- `docs/new-route-and-app.md` — новый маршрут, OSM, отдельное имя (SB_Toksovo)
+
+## Техника (Windows)
+
+- SDK path: диск `X:\` via `connect-iq/setup-sdk-path.bat`; `current-sdk.cfg` = `X:\`
+- `monkeyC.developerKeyPath`: `connect-iq/developer_key.der` (не `${workspaceFolder}`)
+- Сборка: `connect-iq/bin/SB_Levashovo.prg` (`bin/` в корне — junction на ту же папку)
+- Маршрут в сборке: `connect-iq/resources/jsonData/lake_demo.buoy_route.json` (сейчас полевой круг Левашово, `field_walk_2026-05-24`)
+- Токсово (Аунеланлахти) — отдельное приложение **SB_Toksovo**, маршрут `routes/toksovo_aunelanlahti.buoy_route.json`
+- Симулятор GPS: Settings → Set Position; Simulation → Activity Data → Play
+
+## Следующая задача
+
+Пользователь принесёт FIT заплыва → расставить буи на треке → обновить JSON → прогон в симуляторе и на воде.

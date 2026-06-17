@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="SwimBuoy"
+  xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>Токсово Аунеланлахти P1–P5</name>
+    <desc>Буи из routes/toksovo_aunelanlahti.buoy_route.json (SB_Toksovo)</desc>
+  </metadata>
+  <wpt lat="60.1562840" lon="30.5536240"><name>P1 Старт</name></wpt>
+  <wpt lat="60.1609200" lon="30.5664500"><name>P2 Буй 1</name></wpt>
+  <wpt lat="60.1644200" lon="30.5687300"><name>P3 Буй 2</name></wpt>
+  <wpt lat="60.1597990" lon="30.5620350"><name>P4 Буй 3</name></wpt>
+  <wpt lat="60.1562840" lon="30.5536240"><name>P5 Финиш</name></wpt>
+  <rte>
+    <name>P1 → P5</name>
+    <rtept lat="60.1562840" lon="30.5536240"><name>P1</name></rtept>
+    <rtept lat="60.1609200" lon="30.5664500"><name>P2</name></rtept>
+    <rtept lat="60.1644200" lon="30.5687300"><name>P3</name></rtept>
+    <rtept lat="60.1597990" lon="30.5620350"><name>P4</name></rtept>
+    <rtept lat="60.1562840" lon="30.5536240"><name>P5</name></rtept>
+  </rte>
+</gpx>

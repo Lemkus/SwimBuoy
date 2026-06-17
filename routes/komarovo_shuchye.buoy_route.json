@@ -1,0 +1,46 @@
+{
+  "routeId": "komarovo_shuchye_01",
+  "name": "Комарово, Щучье озеро (~2.4 км)",
+  "guidanceMode": "point_proximity",
+  "arrivalRadiusM": 20,
+  "dwellSec": 4,
+  "points": {
+    "P1": {
+      "lat": 60.211561,
+      "lon": 29.787201,
+      "name": "Буй 1"
+    },
+    "P2": {
+      "lat": 60.215848,
+      "lon": 29.77617,
+      "name": "Буй 2"
+    },
+    "P3": {
+      "lat": 60.213478,
+      "lon": 29.777234,
+      "name": "Буй 3"
+    },
+    "P4": {
+      "lat": 60.214213,
+      "lon": 29.787839,
+      "name": "Буй 4"
+    },
+    "P5": {
+      "lat": 60.21054,
+      "lon": 29.782264,
+      "name": "Буй 5"
+    }
+  },
+  "session": {
+    "orderMode": "fixed",
+    "order": [
+      "P1",
+      "P2",
+      "P3",
+      "P4",
+      "P5"
+    ],
+    "activeIndex": 0,
+    "taken": []
+  }
+}

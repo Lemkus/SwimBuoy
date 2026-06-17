@@ -1,0 +1,5 @@
+{
+    "monkeyC.developerKeyPath": "connect-iq/developer_key.der",
+    "monkeyC.jungleFiles": "connect-iq/monkey.jungle",
+    "monkeyC.javaPath": "C:\\Program Files\\BellSoft\\LibericaJDK-11-Full"
+}

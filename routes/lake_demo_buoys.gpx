@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="SwimBuoy"
+  xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>������� ���� P1�P5 (lake_demo)</name>
+    <desc>��� �� connect-iq/resources/jsonData/lake_demo.buoy_route.json</desc>
+  </metadata>
+  <wpt lat="60.1200133" lon="30.2590315"><name>P1 �����</name></wpt>
+  <wpt lat="60.1201816" lon="30.2550228"><name>P2 ��� 2</name></wpt>
+  <wpt lat="60.1210397" lon="30.2571027"><name>P3 ��� 3</name></wpt>
+  <wpt lat="60.1199086" lon="30.2577355"><name>P4 ��� 4</name></wpt>
+  <wpt lat="60.1200667" lon="30.2588867"><name>P5 �����</name></wpt>
+  <rte>
+    <name>P1 ? P5</name>
+    <rtept lat="60.1200133" lon="30.2590315"><name>P1</name></rtept>
+    <rtept lat="60.1201816" lon="30.2550228"><name>P2</name></rtept>
+    <rtept lat="60.1210397" lon="30.2571027"><name>P3</name></rtept>
+    <rtept lat="60.1199086" lon="30.2577355"><name>P4</name></rtept>
+    <rtept lat="60.1200667" lon="30.2588867"><name>P5</name></rtept>
+  </rte>
+</gpx>

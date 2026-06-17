@@ -1,0 +1,9 @@
+{
+    "recommendations": [
+        "garmin.monkey-c"
+    ],
+    "files.associations": {
+        "*.mc": "monkeyc",
+        "*.jungle": "monkeyc"
+    }
+}

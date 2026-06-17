@@ -1,0 +1,46 @@
+{
+  "routeId": "toksovo_aunelanlahti_02",
+  "name": "Токсово, залив Аунеланлахти (~2.5 км)",
+  "guidanceMode": "point_proximity",
+  "arrivalRadiusM": 20,
+  "dwellSec": 4,
+  "points": {
+    "P1": {
+      "lat": 60.156284,
+      "lon": 30.553624,
+      "name": "Старт"
+    },
+    "P2": {
+      "lat": 60.16092,
+      "lon": 30.56645,
+      "name": "Буй 1"
+    },
+    "P3": {
+      "lat": 60.16442,
+      "lon": 30.56873,
+      "name": "Буй 2"
+    },
+    "P4": {
+      "lat": 60.159799,
+      "lon": 30.562035,
+      "name": "Буй 3"
+    },
+    "P5": {
+      "lat": 60.156284,
+      "lon": 30.553624,
+      "name": "Финиш"
+    }
+  },
+  "session": {
+    "orderMode": "fixed",
+    "order": [
+      "P1",
+      "P2",
+      "P3",
+      "P4",
+      "P5"
+    ],
+    "activeIndex": 0,
+    "taken": []
+  }
+}

@@ -1,0 +1,13 @@
+<strings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
+    <string id="AppName">SB_Osinova2</string>
+    <string id="WaitingGps">GPS…</string>
+    <string id="WaitingGpsHint">Open sky, wait 2 min</string>
+    <string id="WaitingGpsHint2">App: allow Location</string>
+    <string id="GpsPermission">No Location permission</string>
+    <string id="GpsSearching">Searching satellites</string>
+    <string id="GpsLastKnown">Last known position</string>
+    <string id="NoRoute">No route</string>
+    <string id="AllDone">Done!</string>
+    <string id="Meters">m</string>
+    <string id="SkipConfirm">Пропустить буй?</string>
+</strings>

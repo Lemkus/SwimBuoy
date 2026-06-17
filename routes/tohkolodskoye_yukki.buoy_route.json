@@ -1,0 +1,40 @@
+{
+  "routeId": "tohkolodskoye_yukki_01",
+  "name": "Тохколодское озеро, Юкки (~1 км)",
+  "guidanceMode": "point_proximity",
+  "arrivalRadiusM": 20,
+  "dwellSec": 4,
+  "points": {
+    "P1": {
+      "lat": 60.1121492,
+      "lon": 30.2992169,
+      "name": "Старт"
+    },
+    "P2": {
+      "lat": 60.1134281,
+      "lon": 30.3022625,
+      "name": "Буй 2"
+    },
+    "P3": {
+      "lat": 60.1145459,
+      "lon": 30.3042532,
+      "name": "Буй 3"
+    },
+    "P4": {
+      "lat": 60.1139612,
+      "lon": 30.3005055,
+      "name": "Буй 4"
+    },
+    "P5": {
+      "lat": 60.1137432,
+      "lon": 30.2971086,
+      "name": "Финиш"
+    }
+  },
+  "session": {
+    "orderMode": "fixed",
+    "order": ["P1", "P2", "P3", "P4", "P5"],
+    "activeIndex": 0,
+    "taken": []
+  }
+}

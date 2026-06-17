@@ -1,0 +1,35 @@
+# SwimBuoy lightweight memory rules
+
+Полный контекст чата: docs/SESSION_SUMMARY.md
+
+## Context
+- Это отдельный проект от "Проект Рогейн".
+- Ничего не переносить автоматически из старого репозитория без явной необходимости.
+
+## MVP focus
+- Главный экран часов: большие метры до точки + стрелка направления.
+- Навигация к точке (`point_proximity`), не по отклонению от линии.
+- В заплыве показывать только активную точку.
+
+## Data model
+- Точки (`points`) фиксированные по координатам.
+- Порядок (`session.order`) меняется по режиму.
+- Засчитывание: `radius + dwell`.
+
+## Engineering constraints
+- Минимальный объём изменений.
+- Без лишней архитектуры.
+- Сначала рабочий прототип на FR955, потом расширения.
+
+## Handoff / память проекта
+- **Memory Bank (активные задачи):** `memory-bank/` + slash `/mb-init`, `/mb-task`, `/mb-progress`, `/mb-reflect`, `/mb-archive`
+- Статус и next steps: `docs/status.md`
+- Dev setup (SDK, симулятор, FIT): `docs/dev-setup.md`
+- Новый маршрут / SB_* app: `docs/new-route-and-app.md`
+- Продуктовые решения: `docs/decisions.md`
+- Cursor rule: `.cursor/rules/project-context.mdc`
+
+## Текущий статус (2026-06-07)
+- Сборка: **SB_Levashovo.prg**, маршрут Левашово (полевой круг ~890 m). Токсово — отдельно (**SB_Toksovo**).
+- Windows: SDK на `X:\` через `connect-iq/setup-sdk-path.bat`.
+- Следующее: FIT заплыва на воде → уточнить буи (см. `docs/new-route-and-app.md`).

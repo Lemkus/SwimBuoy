@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" creator="https://MapMagic.app" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd" version="1.1">
+	<wpt lat="60.211561" lon="29.787201">
+		<name>Буй1</name>
+		<type>Generic</type>
+	</wpt>
+	<wpt lat="60.215848" lon="29.776170">
+		<name>Буй2</name>
+		<type>Generic</type>
+	</wpt>
+	<wpt lat="60.213478" lon="29.777234">
+		<name>Буй3</name>
+		<type>Generic</type>
+	</wpt>
+	<wpt lat="60.214213" lon="29.787839">
+		<name>Буй4</name>
+		<type>Generic</type>
+	</wpt>
+	<wpt lat="60.210540" lon="29.782264">
+		<name>Буй5</name>
+		<type>Generic</type>
+	</wpt>
+	<wpt lat="60.209446" lon="29.789698">
+		<name>Старт</name>
+		<type>Generic</type>
+	</wpt>
+	<trk>
+		<name>Санкт-Петербург</name>
+		<desc>Санкт-Петербург, Россия</desc>
+		<trkseg>
+			<trkpt lat="60.209357" lon="29.789474"><ele>45.9</ele><time>2026-06-11T08:39:15Z</time></trkpt>
+			<trkpt lat="60.211499" lon="29.787371"><ele>43.3</ele><time>2026-06-11T08:44:46Z</time></trkpt>
+			<trkpt lat="60.215710" lon="29.776341"><ele>45.3</ele><time>2026-06-11T09:00:47Z</time></trkpt>
+			<trkpt lat="60.213519" lon="29.777006"><ele>43.3</ele><time>2026-06-11T09:05:55Z</time></trkpt>
+			<trkpt lat="60.214113" lon="29.787664"><ele>47.1</ele><time>2026-06-11T09:18:15Z</time></trkpt>
+			<trkpt lat="60.210489" lon="29.782578"><ele>40.0</ele><time>2026-06-11T09:28:29Z</time></trkpt>
+			<trkpt lat="60.209575" lon="29.790090"><ele>48.4</ele><time>2026-06-11T09:37:23Z</time></trkpt>
+		</trkseg>
+	</trk>
+</gpx>

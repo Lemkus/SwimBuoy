@@ -1,0 +1,40 @@
+{
+  "routeId": "lake_demo_01",
+  "name": "Полевой круг ~890 м (ходьба 24.05.2026)",
+  "guidanceMode": "point_proximity",
+  "arrivalRadiusM": 20,
+  "dwellSec": 4,
+  "points": {
+    "P1": {
+      "lat": 60.1200133,
+      "lon": 30.2590315,
+      "name": "Старт"
+    },
+    "P2": {
+      "lat": 60.1201816,
+      "lon": 30.2550228,
+      "name": "Буй 2"
+    },
+    "P3": {
+      "lat": 60.1210397,
+      "lon": 30.2571027,
+      "name": "Буй 3"
+    },
+    "P4": {
+      "lat": 60.1199086,
+      "lon": 30.2577355,
+      "name": "Буй 4"
+    },
+    "P5": {
+      "lat": 60.1200667,
+      "lon": 30.2588867,
+      "name": "Финиш"
+    }
+  },
+  "session": {
+    "orderMode": "fixed",
+    "order": ["P1", "P2", "P3", "P4", "P5"],
+    "activeIndex": 0,
+    "taken": []
+  }
+}

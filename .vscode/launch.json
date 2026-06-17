@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "monkeyc",
+            "request": "launch",
+            "name": "Run App (fr955)",
+            "device": "fr955",
+            "prg": "${workspaceFolder}/bin/SwimBuoy.prg",
+            "prgDebugXml": "${workspaceFolder}/bin/SwimBuoy.prg.debug.xml",
+            "stopAtLaunch": false
+        }
+    ]
+}

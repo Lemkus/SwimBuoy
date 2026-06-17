@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" creator="https://MapMagic.app" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd" version="1.1">
+	<wpt lat="60.116732" lon="30.240727">
+		<name>Буй1</name>
+		<type>Generic</type>
+	</wpt>
+	<wpt lat="60.117530" lon="30.243854">
+		<name>Буй2</name>
+		<type>Generic</type>
+	</wpt>
+	<wpt lat="60.119540" lon="30.247897">
+		<name>Буй3</name>
+		<type>Generic</type>
+	</wpt>
+	<wpt lat="60.117191" lon="30.248593">
+		<name>Старт</name>
+		<type>Generic</type>
+	</wpt>
+	<wpt lat="60.116791" lon="30.253366">
+		<name>Буй4</name>
+		<type>Generic</type>
+	</wpt>
+	<trk>
+		<name>Санкт-Петербург</name>
+		<desc>Санкт-Петербург, Россия</desc>
+		<trkseg>
+			<trkpt lat="60.117524" lon="30.243849"><ele>0.0</ele><time>2026-06-16T15:10:02Z</time></trkpt>
+		</trkseg>
+	</trk>
+</gpx>

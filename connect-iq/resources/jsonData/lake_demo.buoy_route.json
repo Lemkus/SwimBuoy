@@ -1,0 +1,40 @@
+{
+  "routeId": "osinova_bolshoe_01",
+  "name": "Озеро Большое Осиновая Роща",
+  "guidanceMode": "point_proximity",
+  "arrivalRadiusM": 20,
+  "dwellSec": 4,
+  "start": {
+    "lat": 60.117191,
+    "lon": 30.248593,
+    "name": "Старт"
+  },
+  "points": {
+    "P1": {
+      "lat": 60.116732,
+      "lon": 30.240727,
+      "name": "Буй 1"
+    },
+    "P2": {
+      "lat": 60.117530,
+      "lon": 30.243854,
+      "name": "Буй 2"
+    },
+    "P3": {
+      "lat": 60.119540,
+      "lon": 30.247897,
+      "name": "Буй 3"
+    },
+    "P4": {
+      "lat": 60.116791,
+      "lon": 30.253366,
+      "name": "Буй 4"
+    }
+  },
+  "session": {
+    "orderMode": "fixed",
+    "order": ["P1", "P2", "P3", "P4"],
+    "activeIndex": 0,
+    "taken": []
+  }
+}
