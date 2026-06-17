@@ -1,5 +1,6 @@
 import Toybox.Activity;
 import Toybox.ActivityRecording;
+import Toybox.Application;
 import Toybox.Attention;
 import Toybox.Graphics;
 import Toybox.Lang;
@@ -10,8 +11,11 @@ import Toybox.WatchUi;
 using Toybox.Math;
 
 class SwimBuoyView extends WatchUi.View {
+    const MAX_TRACK_POINTS = 2000;
+
     var routeEngine as RouteEngine;
     var hapticNavigator as HapticNavigator;
+    var backendClient as BackendClient;
     var lastPosition as Position.Location?;
     var lastHeading as Float?;
     var lastActivePointId as String?;
@@ -23,10 +27,16 @@ class SwimBuoyView extends WatchUi.View {
     var gpsStarted as Boolean = false;
     var recordingSession as ActivityRecording.Session?;
 
+    var trackBuffer as Array = [];
+    var lastSampleSec as Number = 0;
+    var didSyncOnShow as Boolean = false;
+    var uploadStatus as String?;
+
     function initialize() {
         View.initialize();
         routeEngine = new RouteEngine();
         hapticNavigator = new HapticNavigator();
+        backendClient = new BackendClient(self);
         startGps();
     }
 
@@ -41,7 +51,66 @@ class SwimBuoyView extends WatchUi.View {
             pollTimer = new Timer.Timer();
             pollTimer.start(method(:onPollPosition), 1000, true);
         }
+        if (!didSyncOnShow) {
+            didSyncOnShow = true;
+            // Досылаем трек прошлого заплыва (если не доехал) и тянем маршрут.
+            backendClient.uploadPending();
+            backendClient.syncRouteIfConfigured();
+        }
         applyPositionInfo(Position.getInfo());
+        WatchUi.requestUpdate();
+    }
+
+    // Перезагрузка маршрута после синка с портала.
+    function reloadRoute() as Void {
+        routeEngine.loadRoute();
+        lastActivePointId = null;
+        uploadStatus = WatchUi.loadResource(Rez.Strings.RouteSynced) as String;
+        WatchUi.requestUpdate();
+    }
+
+    function getSampleSec() as Number {
+        var v = Application.Properties.getValue("trackSampleSec");
+        if (v != null && v instanceof Number && (v as Number) > 0) {
+            return v as Number;
+        }
+        return 3;
+    }
+
+    // Буферизуем GPS-точки заплыва для отправки на портал.
+    function sampleTrack(nowSec as Number, lat as Float, lon as Float) as Void {
+        if (trackBuffer.size() >= MAX_TRACK_POINTS) {
+            return;
+        }
+        if (lastSampleSec == 0 || nowSec - lastSampleSec >= getSampleSec()) {
+            trackBuffer.add({ "t" => nowSec, "lat" => lat, "lon" => lon });
+            lastSampleSec = nowSec;
+        }
+    }
+
+    function uploadTrackIfNeeded() as Void {
+        if (trackBuffer.size() == 0) {
+            return;
+        }
+        var auto = Application.Properties.getValue("autoUpload");
+        if (auto != null && auto == false) {
+            return;
+        }
+        var first = trackBuffer[0] as Dictionary;
+        var payload = {
+            "route_id" => routeEngine.routeId,
+            "name" => "SwimBuoy",
+            "recorded_at" => first.get("t"),
+            "points" => trackBuffer
+        };
+        uploadStatus = WatchUi.loadResource(Rez.Strings.Uploading) as String;
+        backendClient.queueAndUpload(payload);
+    }
+
+    function onUploadResult(ok as Boolean) as Void {
+        uploadStatus = WatchUi.loadResource(
+            ok ? Rez.Strings.UploadOk : Rez.Strings.UploadFail
+        ) as String;
         WatchUi.requestUpdate();
     }
 
@@ -85,6 +154,11 @@ class SwimBuoyView extends WatchUi.View {
         } catch (ex) {
         }
         recordingSession = null;
+
+        if (save) {
+            // Отправляем трек заплыва на портал SwimBuoy.
+            uploadTrackIfNeeded();
+        }
     }
 
     function startGps() as Void {
@@ -155,6 +229,7 @@ class SwimBuoyView extends WatchUi.View {
         var lon = degrees[1].toFloat();
         var nowSec = Time.now().value();
 
+        sampleTrack(nowSec, lat, lon);
         routeEngine.updateProximity(lat, lon, nowSec);
         updateHaptic(lat, lon, nowSec);
         WatchUi.requestUpdate();
