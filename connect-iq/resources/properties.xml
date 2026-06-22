@@ -1,15 +1,15 @@
 <properties xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
-    <property id="hapticMode" type="string">beacon_off_course</property>
-    <property id="hapticTrendWindowSec" type="number">15</property>
-    <property id="hapticOnProgressScale" type="float">3.0</property>
-    <property id="hapticOffProgressScale" type="float">2.0</property>
-    <property id="hapticOffClearScale" type="float">1.2</property>
-    <property id="hapticLegDriftBudgetM" type="float">15</property>
+    <property id="hapticMode" type="string">corridor_off_course</property>
+    <property id="hapticCorridorHalfWidthM" type="float">20</property>
+    <property id="hapticCorridorHysteresisM" type="float">5</property>
+    <property id="hapticCorridorEnterSec" type="number">3</property>
+    <property id="hapticCorridorClearSec" type="number">2</property>
+    <property id="hapticApproachWindowSec" type="number">15</property>
+    <property id="hapticApproachProgressM" type="float">3</property>
     <property id="hapticEmaAlpha" type="float">0.3</property>
     <property id="hapticPulseMinIntervalSec" type="number">6</property>
+    <property id="hapticLegEndpointBufferM" type="float">50</property>
     <property id="hapticStartMismatchM" type="number">50</property>
-    <property id="hapticStartProgressM" type="number">5</property>
-    <property id="hapticStartDriftM" type="number">5</property>
 
     <!-- Портал SwimBuoy: синк маршрута и отправка трека заплыва. -->
     <property id="backendUrl" type="string">https://swimbuy.iron-siber.ru</property>

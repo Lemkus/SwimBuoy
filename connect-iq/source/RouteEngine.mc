@@ -321,4 +321,33 @@ class RouteEngine {
     function isSessionActive() as Boolean {
         return loaded && !finished;
     }
+
+    // Leg axis for haptic corridor: session GPS -> P1, then prev buoy -> active buoy.
+    function getActiveLegEndpoints() as Array? {
+        var point = getActivePoint();
+        if (point == null) {
+            return null;
+        }
+
+        var fromLat = 0.0;
+        var fromLon = 0.0;
+
+        if (activeIndex == 0) {
+            if (!sessionStartCaptured) {
+                return null;
+            }
+            fromLat = sessionStartLat;
+            fromLon = sessionStartLon;
+        } else {
+            var prevId = order[activeIndex - 1] as String;
+            var prevData = pointsById.get(prevId) as Dictionary;
+            if (prevData == null) {
+                return null;
+            }
+            fromLat = prevData.get("lat") as Float;
+            fromLon = prevData.get("lon") as Float;
+        }
+
+        return [fromLat, fromLon, point.lat, point.lon];
+    }
 }

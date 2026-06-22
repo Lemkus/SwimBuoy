@@ -3,66 +3,62 @@ import Toybox.Lang;
 
 class HapticNavigator {
     const MODE_OFF = "off";
-    const MODE_BEACON = "beacon_off_course";
+    const MODE_CORRIDOR = "corridor_off_course";
 
-    const DEF_TREND_WINDOW_SEC = 15;
-    const DEF_ON_SCALE = 3.0;
-    const DEF_OFF_SCALE = 2.0;
-    const DEF_OFF_CLEAR_SCALE = 1.2;
-    const DEF_LEG_DRIFT_BUDGET_M = 15.0;
+    const DEF_CORRIDOR_HALF_WIDTH_M = 20.0;
+    const DEF_CORRIDOR_HYSTERESIS_M = 5.0;
+    const DEF_CORRIDOR_ENTER_SEC = 3;
+    const DEF_CORRIDOR_CLEAR_SEC = 2;
+    const DEF_APPROACH_WINDOW_SEC = 15;
+    const DEF_APPROACH_PROGRESS_M = 3.0;
     const DEF_EMA_ALPHA = 0.3;
     const DEF_PULSE_MIN_INTERVAL_SEC = 6;
-    const DEF_START_MISMATCH_M = 50.0;
-    const DEF_START_PROGRESS_M = 5.0;
-    const DEF_START_DRIFT_M = 5.0;
+    const DEF_LEG_ENDPOINT_BUFFER_M = 50.0;
 
-    var hapticMode as String = MODE_BEACON;
-    var trendWindowSec as Number = DEF_TREND_WINDOW_SEC;
-    var onScale as Float = DEF_ON_SCALE;
-    var offScale as Float = DEF_OFF_SCALE;
-    var offClearScale as Float = DEF_OFF_CLEAR_SCALE;
-    var legDriftBudgetM as Float = DEF_LEG_DRIFT_BUDGET_M;
+    var hapticMode as String = MODE_CORRIDOR;
+    var corridorHalfWidthM as Float = DEF_CORRIDOR_HALF_WIDTH_M;
+    var corridorHysteresisM as Float = DEF_CORRIDOR_HYSTERESIS_M;
+    var corridorEnterSec as Number = DEF_CORRIDOR_ENTER_SEC;
+    var corridorClearSec as Number = DEF_CORRIDOR_CLEAR_SEC;
+    var approachWindowSec as Number = DEF_APPROACH_WINDOW_SEC;
+    var approachProgressM as Float = DEF_APPROACH_PROGRESS_M;
     var emaAlpha as Float = DEF_EMA_ALPHA;
     var pulseMinIntervalSec as Number = DEF_PULSE_MIN_INTERVAL_SEC;
-    var startProgressM as Float = DEF_START_PROGRESS_M;
-    var startDriftM as Float = DEF_START_DRIFT_M;
+    var legEndpointBufferM as Float = DEF_LEG_ENDPOINT_BUFFER_M;
 
-    var onThresholdM as Float = -4.5;
-    var offThresholdM as Float = 3.0;
-    var offClearM as Float = 1.8;
+    var corridorClearWidthM as Float = 15.0;
 
     var smoothedDistM as Float? = null;
+    var smoothedXteM as Float? = null;
+    var smoothedSignedXteM as Float? = null;
     var distHistory as Array = [];
-    var legMinDistM as Float = 0.0;
-    var isDrifting as Boolean = false;
+    var isOutside as Boolean = false;
+    var isApproachingNow as Boolean = false;
+    var outsideSec as Number = 0;
+    var insideSec as Number = 0;
     var buoyChangedAtSec as Number = 0;
-    var lastRecheckSec as Number = 0;
     var lastPulseSec as Number = -100;
     var pendingPulse as Boolean = false;
-
-    var initialDistToActiveM as Float = 0.0;
-    var hasSessionAnchor as Boolean = false;
 
     function initialize() {
         loadSettings();
     }
 
     function loadSettings() as Void {
-        hapticMode = readStringProp("hapticMode", MODE_BEACON);
-        trendWindowSec = readNumberProp("hapticTrendWindowSec", DEF_TREND_WINDOW_SEC);
-        onScale = readFloatProp("hapticOnProgressScale", DEF_ON_SCALE);
-        offScale = readFloatProp("hapticOffProgressScale", DEF_OFF_SCALE);
-        offClearScale = readFloatProp("hapticOffClearScale", DEF_OFF_CLEAR_SCALE);
-        legDriftBudgetM = readFloatProp("hapticLegDriftBudgetM", DEF_LEG_DRIFT_BUDGET_M);
+        hapticMode = readStringProp("hapticMode", MODE_CORRIDOR);
+        corridorHalfWidthM = readFloatProp("hapticCorridorHalfWidthM", DEF_CORRIDOR_HALF_WIDTH_M);
+        corridorHysteresisM = readFloatProp("hapticCorridorHysteresisM", DEF_CORRIDOR_HYSTERESIS_M);
+        corridorEnterSec = readNumberProp("hapticCorridorEnterSec", DEF_CORRIDOR_ENTER_SEC);
+        corridorClearSec = readNumberProp("hapticCorridorClearSec", DEF_CORRIDOR_CLEAR_SEC);
+        approachWindowSec = readNumberProp("hapticApproachWindowSec", DEF_APPROACH_WINDOW_SEC);
+        approachProgressM = readFloatProp("hapticApproachProgressM", DEF_APPROACH_PROGRESS_M);
         emaAlpha = readFloatProp("hapticEmaAlpha", DEF_EMA_ALPHA);
         pulseMinIntervalSec = readNumberProp("hapticPulseMinIntervalSec", DEF_PULSE_MIN_INTERVAL_SEC);
-        startProgressM = readFloatProp("hapticStartProgressM", DEF_START_PROGRESS_M);
-        startDriftM = readFloatProp("hapticStartDriftM", DEF_START_DRIFT_M);
-
-        var windowFactor = trendWindowSec.toFloat() / 10.0;
-        onThresholdM = -onScale * windowFactor;
-        offThresholdM = offScale * windowFactor;
-        offClearM = offClearScale * windowFactor;
+        legEndpointBufferM = readFloatProp("hapticLegEndpointBufferM", DEF_LEG_ENDPOINT_BUFFER_M);
+        corridorClearWidthM = corridorHalfWidthM - corridorHysteresisM;
+        if (corridorClearWidthM < 0.0) {
+            corridorClearWidthM = 0.0;
+        }
     }
 
     function readStringProp(key as String, fallback as String) as String {
@@ -94,33 +90,31 @@ class HapticNavigator {
         return fallback;
     }
 
-    function resetForNewBuoy(rawDistM as Float, nowSec as Number) as Void {
+    function resetForNewBuoy(rawDistM as Float, rawSignedXteM as Float, nowSec as Number) as Void {
         smoothedDistM = rawDistM;
+        smoothedSignedXteM = rawSignedXteM;
+        smoothedXteM = absXte(rawSignedXteM);
         distHistory = [[nowSec, rawDistM]] as Array;
-        legMinDistM = rawDistM;
-        isDrifting = false;
+        isOutside = false;
+        isApproachingNow = false;
+        outsideSec = 0;
+        insideSec = 0;
         buoyChangedAtSec = nowSec;
-        lastRecheckSec = nowSec;
         lastPulseSec = -100;
         pendingPulse = false;
     }
 
-    function setSessionAnchor(initialDistM as Float) as Void {
-        initialDistToActiveM = initialDistM;
-        hasSessionAnchor = true;
-    }
-
-    function clearSessionAnchor() as Void {
-        hasSessionAnchor = false;
-        initialDistToActiveM = 0.0;
+    function absXte(signedXteM as Float) as Float {
+        return signedXteM < 0.0 ? -signedXteM : signedXteM;
     }
 
     function update(
         nowSec as Number,
         rawDistM as Float,
+        rawSignedXteM as Float,
+        alongValid as Boolean,
         insideRadius as Boolean,
-        sessionActive as Boolean,
-        startAnchorActive as Boolean
+        sessionActive as Boolean
     ) as Void {
         pendingPulse = false;
 
@@ -128,40 +122,59 @@ class HapticNavigator {
             return;
         }
 
-        if (smoothedDistM == null) {
-            resetForNewBuoy(rawDistM, nowSec);
+        if (smoothedDistM == null || smoothedXteM == null || smoothedSignedXteM == null) {
+            resetForNewBuoy(rawDistM, rawSignedXteM, nowSec);
             return;
         }
 
+        if (nowSec - buoyChangedAtSec < corridorEnterSec) {
+            return;
+        }
+
+        if (!alongValid) {
+            return;
+        }
+
+        var rawAbsXte = absXte(rawSignedXteM);
         smoothedDistM = (1.0 - emaAlpha) * smoothedDistM + emaAlpha * rawDistM;
+        smoothedSignedXteM = (1.0 - emaAlpha) * smoothedSignedXteM + emaAlpha * rawSignedXteM;
+        smoothedXteM = (1.0 - emaAlpha) * smoothedXteM + emaAlpha * rawAbsXte;
         distHistory.add([nowSec, smoothedDistM]);
 
         trimHistory(nowSec);
 
-        if (nowSec - buoyChangedAtSec < trendWindowSec) {
-            return;
+        var approaching = isApproaching(nowSec);
+        isApproachingNow = approaching;
+
+        if (smoothedXteM > corridorHalfWidthM) {
+            outsideSec += 1;
+            insideSec = 0;
+        } else if (smoothedXteM < corridorClearWidthM) {
+            insideSec += 1;
+            outsideSec = 0;
+        } else {
+            outsideSec = 0;
+            insideSec = 0;
         }
 
-        if (!isDrifting) {
-            legMinDistM = rawDistM < legMinDistM ? rawDistM : legMinDistM;
-        }
-
-        if (nowSec - lastRecheckSec >= trendWindowSec) {
-            lastRecheckSec = nowSec;
-            var progress = computeProgress(nowSec);
-            if (progress != null) {
-                updateDriftState(progress, rawDistM, startAnchorActive);
+        if (isOutside) {
+            if (insideSec >= corridorClearSec || approaching) {
+                isOutside = false;
+                outsideSec = 0;
+                insideSec = 0;
             }
+        } else if (outsideSec >= corridorEnterSec && !approaching) {
+            isOutside = true;
         }
 
-        if (isDrifting && nowSec - lastPulseSec >= pulseMinIntervalSec) {
+        if (isOutside && nowSec - lastPulseSec >= pulseMinIntervalSec) {
             pendingPulse = true;
             lastPulseSec = nowSec;
         }
     }
 
     function trimHistory(nowSec as Number) as Void {
-        var cutoff = nowSec - trendWindowSec - 2;
+        var cutoff = nowSec - approachWindowSec - 2;
         while (distHistory.size() > 2) {
             var oldest = distHistory[0] as Array;
             if ((oldest[0] as Number) >= cutoff) {
@@ -171,13 +184,15 @@ class HapticNavigator {
         }
     }
 
-    function computeProgress(nowSec as Number) as Float? {
-        var targetSec = nowSec - trendWindowSec;
-        var pastDist = findSmoothedAtSec(targetSec);
-        if (pastDist == null || smoothedDistM == null) {
-            return null;
+    function isApproaching(nowSec as Number) as Boolean {
+        if (smoothedDistM == null) {
+            return false;
         }
-        return smoothedDistM - pastDist;
+        var pastDist = findSmoothedAtSec(nowSec - approachWindowSec);
+        if (pastDist == null) {
+            return false;
+        }
+        return (smoothedDistM - pastDist) <= -approachProgressM;
     }
 
     function findSmoothedAtSec(targetSec as Number) as Float? {
@@ -195,40 +210,10 @@ class HapticNavigator {
                 bestDist = entry[1] as Float;
             }
         }
-        if (bestDelta > trendWindowSec) {
+        if (bestDelta > approachWindowSec) {
             return null;
         }
         return bestDist;
-    }
-
-    function updateDriftState(
-        progress as Float,
-        rawDistM as Float,
-        startAnchorActive as Boolean
-    ) as Void {
-        var budgetAlarm = rawDistM > legMinDistM + legDriftBudgetM;
-        var trendAlarm = progress >= offThresholdM;
-        var startDriftAlarm = startAnchorActive
-            && rawDistM > initialDistToActiveM + startDriftM;
-
-        if (isDrifting) {
-            if (progress <= offClearM) {
-                isDrifting = false;
-                legMinDistM = rawDistM;
-            }
-        } else {
-            var shouldDrift = trendAlarm || budgetAlarm || startDriftAlarm;
-            if (startAnchorActive && !shouldDrift) {
-                var madeProgress = rawDistM < initialDistToActiveM - startProgressM;
-                var trendOk = progress <= offThresholdM;
-                if (!madeProgress && trendOk && progress > onThresholdM) {
-                    shouldDrift = false;
-                }
-            }
-            if (shouldDrift) {
-                isDrifting = true;
-            }
-        }
     }
 
     function shouldPulse() as Boolean {
@@ -237,5 +222,30 @@ class HapticNavigator {
 
     function clearPulse() as Void {
         pendingPulse = false;
+    }
+
+    function getSmoothedXteM() as Float? {
+        return smoothedXteM;
+    }
+
+    function getSmoothedSignedXteM() as Float? {
+        return smoothedSignedXteM;
+    }
+
+    function getCorridorUiState(nowSec as Number) as String {
+        if (nowSec - buoyChangedAtSec < corridorEnterSec) {
+            return "warming";
+        }
+        if (isOutside) {
+            return "outside";
+        }
+        if (isApproachingNow) {
+            return "approaching";
+        }
+        return "inside";
+    }
+
+    function isCorridorOutside() as Boolean {
+        return isOutside;
     }
 }

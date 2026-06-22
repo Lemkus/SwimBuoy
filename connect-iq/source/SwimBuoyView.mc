@@ -13,6 +13,8 @@ using Toybox.Math;
 
 class SwimBuoyView extends WatchUi.View {
     const MAX_TRACK_POINTS = 2000;
+    const UI_ARROW_NEAR_DIST_M = 50;
+    const UI_STRIP_WIDTH_PX = 140;
 
     var routeEngine as RouteEngine;
     var hapticNavigator as HapticNavigator;
@@ -273,30 +275,35 @@ class SwimBuoyView extends WatchUi.View {
             return;
         }
 
-        if (activeId != null && !activeId.equals(lastActivePointId)) {
-            hapticNavigator.resetForNewBuoy(distance, nowSec);
-            lastActivePointId = activeId;
-            if (routeEngine.isStartAnchorActive()) {
-                hapticNavigator.setSessionAnchor(routeEngine.initialDistToActiveM);
-            } else {
-                hapticNavigator.clearSessionAnchor();
-            }
+        var signedXte = 0.0;
+        var alongValid = false;
+        var leg = routeEngine.getActiveLegEndpoints();
+        if (leg != null) {
+            var endpoints = leg as Array;
+            var xteResult = GeoUtils.crossTrackDistanceM(
+                lat, lon,
+                endpoints[0] as Float, endpoints[1] as Float,
+                endpoints[2] as Float, endpoints[3] as Float
+            );
+            signedXte = xteResult[0] as Float;
+            var alongM = xteResult[1] as Float;
+            var legLenM = xteResult[2] as Float;
+            alongValid = alongM >= hapticNavigator.legEndpointBufferM
+                && alongM <= legLenM - hapticNavigator.legEndpointBufferM;
         }
 
-        if (routeEngine.sessionStartCaptured && routeEngine.isLegToFirstBuoy()) {
-            if (routeEngine.isStartAnchorActive()) {
-                hapticNavigator.setSessionAnchor(routeEngine.initialDistToActiveM);
-            }
-        } else if (!routeEngine.isLegToFirstBuoy()) {
-            hapticNavigator.clearSessionAnchor();
+        if (activeId != null && !activeId.equals(lastActivePointId)) {
+            hapticNavigator.resetForNewBuoy(distance, signedXte, nowSec);
+            lastActivePointId = activeId;
         }
 
         hapticNavigator.update(
             nowSec,
             distance,
+            signedXte,
+            alongValid,
             routeEngine.isInsideRadius(lat, lon),
-            routeEngine.isSessionActive(),
-            routeEngine.isStartAnchorActive()
+            routeEngine.isSessionActive()
         );
 
         if (hapticNavigator.shouldPulse()) {
@@ -324,14 +331,19 @@ class SwimBuoyView extends WatchUi.View {
             var lon = coords[1].toFloat();
             var distance = routeEngine.distanceToActiveM(lat, lon);
             if (distance != null) {
-                hapticNavigator.resetForNewBuoy(distance, nowSec);
+                var signedXte = 0.0;
+                var leg = routeEngine.getActiveLegEndpoints();
+                if (leg != null) {
+                    var endpoints = leg as Array;
+                    var xteResult = GeoUtils.crossTrackDistanceM(
+                        lat, lon,
+                        endpoints[0] as Float, endpoints[1] as Float,
+                        endpoints[2] as Float, endpoints[3] as Float
+                    );
+                    signedXte = xteResult[0] as Float;
+                }
+                hapticNavigator.resetForNewBuoy(distance, signedXte, nowSec);
             }
-        }
-
-        if (!routeEngine.isLegToFirstBuoy()) {
-            hapticNavigator.clearSessionAnchor();
-        } else if (routeEngine.isStartAnchorActive()) {
-            hapticNavigator.setSessionAnchor(routeEngine.initialDistToActiveM);
         }
 
         WatchUi.requestUpdate();
@@ -400,8 +412,26 @@ class SwimBuoyView extends WatchUi.View {
             drawCenteredText(dc, 56, uploadStatus, Graphics.FONT_XTINY);
         }
 
-        var relativeBearing = GeoUtils.relativeBearingDegrees(bearing, lastHeading);
-        drawArrow(dc, centerX, centerY + 72, relativeBearing, routeEngine.isInsideRadius(lat, lon));
+        var insideRadius = routeEngine.isInsideRadius(lat, lon);
+        if (insideRadius || distance <= UI_ARROW_NEAR_DIST_M) {
+            var relativeBearing = GeoUtils.relativeBearingDegrees(bearing, lastHeading);
+            drawArrow(dc, centerX, centerY + 72, relativeBearing, insideRadius);
+        } else {
+            var nowSec = Time.now().value();
+            var uiState = hapticNavigator.getCorridorUiState(nowSec);
+            var signedXte = hapticNavigator.getSmoothedSignedXteM();
+            if (signedXte == null) {
+                signedXte = 0.0;
+            }
+            drawCorridorStrip(
+                dc,
+                centerX,
+                centerY + 72,
+                signedXte,
+                hapticNavigator.corridorHalfWidthM,
+                uiState
+            );
+        }
 
         if (routeEngine.dwellStartedAt != null && routeEngine.dwellProgressSec > 0) {
             var dwellText = routeEngine.dwellProgressSec.toString()
@@ -436,6 +466,56 @@ class SwimBuoyView extends WatchUi.View {
         var width = dc.getWidth();
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         dc.drawText(width / 2, y, font, text, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+    }
+
+    function drawCorridorStrip(
+        dc as Dc,
+        centerX as Number,
+        centerY as Number,
+        signedXteM as Float,
+        halfWidthM as Float,
+        uiState as String
+    ) as Void {
+        var stripHalfPx = UI_STRIP_WIDTH_PX / 2;
+        var leftX = centerX - stripHalfPx;
+        var rightX = centerX + stripHalfPx;
+        var topY = centerY - 22;
+        var botY = centerY + 22;
+
+        var boundColor = Graphics.COLOR_DK_GRAY;
+        if (uiState.equals("approaching")) {
+            boundColor = Graphics.COLOR_GREEN;
+        } else if (uiState.equals("outside")) {
+            boundColor = Graphics.COLOR_RED;
+        }
+
+        dc.setColor(boundColor, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(2);
+        dc.drawLine(leftX, topY, leftX, botY);
+        dc.drawLine(rightX, topY, rightX, botY);
+
+        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(1);
+        dc.drawLine(centerX, topY, centerX, botY);
+
+        var ratio = 0.0;
+        if (!uiState.equals("warming") && halfWidthM > 0.0) {
+            ratio = signedXteM / halfWidthM;
+            if (ratio > 1.0) {
+                ratio = 1.0;
+            } else if (ratio < -1.0) {
+                ratio = -1.0;
+            }
+        }
+
+        var dotColor = Graphics.COLOR_WHITE;
+        if (uiState.equals("outside")) {
+            dotColor = Graphics.COLOR_RED;
+        }
+
+        var dotX = centerX + (ratio * stripHalfPx).toNumber();
+        dc.setColor(dotColor, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(dotX, centerY, 6);
     }
 
     function drawArrow(

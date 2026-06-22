@@ -66,4 +66,37 @@ module GeoUtils {
         }
         return normalizeAngleDegrees(bearingToTarget - heading);
     }
+
+    // Signed cross-track distance (m), along-track (m), leg length (m).
+    // +XTE = right of leg direction legFrom -> legTo.
+    function crossTrackDistanceM(
+        lat as Float,
+        lon as Float,
+        legFromLat as Float,
+        legFromLon as Float,
+        legToLat as Float,
+        legToLon as Float
+    ) as Array {
+        var legLen = haversineDistanceM(legFromLat, legFromLon, legToLat, legToLon);
+        if (legLen < 1.0) {
+            return [0.0, 0.0, legLen];
+        }
+
+        var brgLeg = bearingDegrees(legFromLat, legFromLon, legToLat, legToLon);
+        var brgPoint = bearingDegrees(legFromLat, legFromLon, lat, lon);
+        var distFrom = haversineDistanceM(legFromLat, legFromLon, lat, lon);
+        var rel = toRadians(brgPoint - brgLeg);
+        var along = distFrom * Math.cos(rel);
+        var xte = distFrom * Math.sin(rel);
+
+        if (along < 0.0) {
+            xte = haversineDistanceM(lat, lon, legFromLat, legFromLon);
+            along = 0.0;
+        } else if (along > legLen) {
+            xte = haversineDistanceM(lat, lon, legToLat, legToLon);
+            along = legLen;
+        }
+
+        return [xte, along, legLen];
+    }
 }
