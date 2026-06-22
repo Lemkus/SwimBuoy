@@ -1,0 +1,50 @@
+{
+  "routeId": "rt_d8d0806df47d063c",
+  "name": "Пасторское озеро",
+  "guidanceMode": "point_proximity",
+  "arrivalRadiusM": 20,
+  "dwellSec": 4,
+  "points": {
+    "P1": {
+      "lat": 60.229382,
+      "lon": 30.044136,
+      "name": "Буй 1"
+    },
+    "P2": {
+      "lat": 60.229758,
+      "lon": 30.036162,
+      "name": "Буй 2"
+    },
+    "P3": {
+      "lat": 60.229537,
+      "lon": 30.033428,
+      "name": "Буй 3"
+    },
+    "P4": {
+      "lat": 60.228786,
+      "lon": 30.036754,
+      "name": "Буй 4"
+    },
+    "P5": {
+      "lat": 60.228698,
+      "lon": 30.045449,
+      "name": "Буй 5"
+    },
+    "P6": {
+      "lat": 60.226578,
+      "lon": 30.047466,
+      "name": "Буй 6"
+    }
+  },
+  "session": {
+    "orderMode": "fixed",
+    "order": ["P1", "P2", "P3", "P4", "P5", "P6"],
+    "activeIndex": 0,
+    "taken": []
+  },
+  "start": {
+    "lat": 60.226546,
+    "lon": 30.04776,
+    "name": "Старт"
+  }
+}

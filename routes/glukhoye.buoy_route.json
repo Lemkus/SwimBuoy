@@ -1,0 +1,50 @@
+{
+  "routeId": "glukhoye_test_center",
+  "name": "Глухое озеро тест точки в центре",
+  "guidanceMode": "point_proximity",
+  "arrivalRadiusM": 20,
+  "dwellSec": 4,
+  "points": {
+    "P1": {
+      "lat": 60.120731,
+      "lon": 30.256966,
+      "name": "Буй 1"
+    },
+    "P2": {
+      "lat": 60.120153,
+      "lon": 30.255903,
+      "name": "Буй 2"
+    },
+    "P3": {
+      "lat": 60.12064,
+      "lon": 30.259165,
+      "name": "Буй 3"
+    },
+    "P4": {
+      "lat": 60.119736,
+      "lon": 30.256483,
+      "name": "Буй 4"
+    },
+    "P5": {
+      "lat": 60.120688,
+      "lon": 30.256054,
+      "name": "Буй 5"
+    },
+    "P6": {
+      "lat": 60.120036,
+      "lon": 30.258757,
+      "name": "Буй 6"
+    }
+  },
+  "session": {
+    "orderMode": "fixed",
+    "order": ["P1", "P2", "P3", "P4", "P5", "P6"],
+    "activeIndex": 0,
+    "taken": []
+  },
+  "start": {
+    "lat": 60.120025,
+    "lon": 30.25891,
+    "name": "Старт"
+  }
+}
